@@ -1,0 +1,71 @@
+const { List, Map, Set } = require('immutable');
+const moment = require('moment');
+const SEASON = require('./SEASON.js');
+const TEAMS = require('./TEAMS.js');
+const seasonUpTo = (season, date, team) =>
+  season.take(
+    season.findIndex(
+      game =>
+        game.get('date').isSame(date) &&
+        (game.get('homeTeam') === team || game.get('awayTeam') === team)
+    ) + 1
+  );
+const seasonAfter = (season, date, team) =>
+  season.skip(
+    season.findIndex(
+      game =>
+        game.get('date').isSame(date) &&
+        (game.get('homeTeam') === team || game.get('awayTeam') === team)
+    ) + 1
+  );
+
+const getWins = (season, team) => season.count(game => game.get('winner') === team);
+const getLosses = (season, team) => season.count(game => game.get('loser') === team);
+
+const getRecords = (season, conference) =>
+  season
+    .reduce(
+      (records, game) =>
+        records
+          .update(game.get('winner'), (record = Map({ wins: 0, losses: 0 })) =>
+            record.update('wins', wins => wins + 1)
+          )
+          .update(game.get('loser'), (record = Map({ wins: 0, losses: 0 })) =>
+            record.update('losses', losses => losses + 1)
+          ),
+      Map()
+    )
+    .filter((record, team) => TEAMS.get(team).get('conference') === conference);
+
+const getMagicNumbers = (records, team) =>
+  records.map(record =>
+    record.set('magic', 82 - record.get('wins') - records.get(team).get('losses'))
+  );
+
+const team = 'Brooklyn Nets';
+const season = seasonUpTo(SEASON, '2017-03-06', team);
+
+const teamLoseOut = (originalRecords, season, team) => {
+  const additionalWins = season.reduce((records, game) => {
+    if (game.get('homeTeam') === team) {
+      return records.update(game.get('awayTeam'), (wins = 0) => wins + 1);
+    }
+    if (game.get('awayTeam') === team) {
+      return records.update(game.get('homeTeam'), (wins = 0) => wins + 1);
+    }
+    return records;
+  }, Map());
+  return originalRecords.map((record, team) => {
+    if (additionalWins.has(team)) {
+      return record
+      .update('wins', wins => record.get('wins') + additionalWins.get(team))
+      .update('magic', magic => record.get('magic') - additionalWins.get(team))
+    }
+    return record;
+  });
+};
+
+
+teamLoseOut(getMagicNumbers(getRecords(season, 'East'), team), seasonAfter(SEASON, '2017-03-06', team), 'Detroit Pistons').forEach((record, team) =>
+  console.log(`${team}, ${record.get('wins')}, ${record.get('losses')}, ${record.get('magic')}`)
+);
