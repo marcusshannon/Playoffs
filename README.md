@@ -1,6 +1,4 @@
 # Playoffs
-The simulation is not complete, but it uses the concept of the "magic number," along with certain tiebreaking procedures.
-
 The code written so far will compute the magic number for a team against every other team in the conference (with the caveat that the magic number formula is usually G + 1 − WA − LB, while we use G − WA − LB to allow ties.)
 
 If there are 8 other teams with a negative magic number in the same conference, the team in question is eliminated.
